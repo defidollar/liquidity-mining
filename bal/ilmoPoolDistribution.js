@@ -1,12 +1,12 @@
 const fs = require('fs')
 const Web3 = require('web3')
-const assert = require('assert').strict
 
 const DUSD = require('../abis/DUSD.json')
 const web3 = new Web3(process.env.INFURA)
 const { fromWei, toWei, toBN } = web3.utils
 
-const fromBlock = 11158542 // ILMO started
+const ilmoStarted = 11158542
+const ilmoEnded = 11184767
 const ilmoStakeContract = '0xF068236eCAd5FAbb9883bbb26A6445d6C7c9A924'
 const userRewardPerTokenPaid = {}
 const rewards = {}
@@ -24,14 +24,15 @@ async function execute(week, startBlock, toBlock, _reward) {
 
     // # of DUSD contributed in ILMO == # of bpt received
     const dusd = new web3.eth.Contract(DUSD, '0x5BC25f649fc4e26069dDF4cF4010F9f706c23831')
-    let events = (await dusd.getPastEvents('Transfer', { filter: { to: ilmoStakeContract }, fromBlock, toBlock: 11184767 }))
+    let events = (await dusd.getPastEvents('Transfer', { filter: { to: ilmoStakeContract }, fromBlock: ilmoStarted, toBlock: ilmoEnded }))
         .sort((a, b) => a.blockNumber - b.blockNumber)
 
     for (let i = 0; i < events.length; i++) {
         credit(events[i].returnValues.from, events[i])
     }
 
-    events = await getPastEvents()
+    events = await getPastEvents(ilmoEnded, toBlock)
+    console.log(events.length)
     for (let i = 0; i < events.length; i++) {
         const event = events[i]
         if (event.blockNumber > startBlock) {
@@ -97,9 +98,9 @@ async function getPastEvents(fromBlock, toBlock) {
     // to work around "Error: Returned error: query returned more than 10000 results"
     let events = []
     let start = parseInt(fromBlock), end = parseInt(toBlock)
-    while (start >= end) {
-        // const mid = parseInt((start + end) / 2)
-        const mid = Math.min(start + 100, end)
+    while (start <= end) {
+        const mid = Math.min(start + 1e5, end)
+        // console.log(start, mid, end)
         events = events.concat(await bpt.getPastEvents('Transfer', { fromBlock: start, toBlock: mid }))
         start = mid + 1
     }
@@ -110,8 +111,7 @@ function debit(account, event) {
     value = toBN(event.returnValues.value)
     updateReward(account)
     if (balanceOf[account].lt(value)) {
-        console.log(account, balanceOf[account].toString(), value.toString())
-        throw new Error('woops')
+        throw new Error(`Can't debit ${value.toString()} from account with bal=${balanceOf[account].toString()}`)
     }
     balanceOf[account] = balanceOf[account].sub(value)
     totalSupply = totalSupply.sub(value)
