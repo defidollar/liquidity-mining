@@ -30,16 +30,9 @@ async function execute(week, startBlock, toBlock, _reward) {
     for (let i = 0; i < events.length; i++) {
         credit(events[i].returnValues.from, events[i])
     }
-    // Transfers to and from ILMO contracts, constitutes as (un)staking
-    const bpt = new web3.eth.Contract(DUSD, '0xd8e9690eff99e21a2de25e0b148ffaf47f47c972')
 
-    // to work around "Error: Returned error: query returned more than 10000 results"
-    const mid = parseInt((parseInt(fromBlock) + parseInt(toBlock)) / 2)
-    events = (await bpt.getPastEvents('Transfer', { fromBlock, toBlock: mid }))
-        .concat(await bpt.getPastEvents('Transfer', { fromBlock: mid + 1, toBlock }))
-        .sort((a, b) => a.blockNumber - b.blockNumber)
-
-        for (let i = 0; i < events.length; i++) {
+    events = await getPastEvents()
+    for (let i = 0; i < events.length; i++) {
         const event = events[i]
         if (event.blockNumber > startBlock) {
             updateGlobalReward(event.blockNumber)
@@ -95,6 +88,22 @@ function updateGlobalReward(now) {
                 .div(totalSupply)
         )
     lastUpdateTime = now
+}
+
+async function getPastEvents(fromBlock, toBlock) {
+    // Transfers to and from ILMO contracts, constitutes as (un)staking
+    const bpt = new web3.eth.Contract(DUSD, '0xd8e9690eff99e21a2de25e0b148ffaf47f47c972')
+
+    // to work around "Error: Returned error: query returned more than 10000 results"
+    let events = []
+    let start = parseInt(fromBlock), end = parseInt(toBlock)
+    while (start >= end) {
+        // const mid = parseInt((start + end) / 2)
+        const mid = Math.min(start + 100, end)
+        events = events.concat(await bpt.getPastEvents('Transfer', { fromBlock: start, toBlock: mid }))
+        start = mid + 1
+    }
+    return events.sort((a, b) => a.blockNumber - b.blockNumber)
 }
 
 function debit(account, event) {
