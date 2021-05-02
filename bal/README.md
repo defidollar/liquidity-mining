@@ -14,5 +14,5 @@ Check [bal-mining-scripts](https://github.com/balancer-labs/bal-mining-scripts#h
 ```
 node ilmoPoolDistribution.js 31-32 11538966 11630234 458
 node ilmoPoolDistribution.js 33-36 11630234 11812442 667.3
-node ilmoPoolDistribution.js 37-43 11812442 12130764 1357.459
+node ilmoPoolDistribution.js 37-47 11812442 12312588 1686.3
 ```
