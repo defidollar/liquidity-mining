@@ -31,9 +31,8 @@ async function execute() {
     // await bal.methods.approve(disperseApp, total).send({ from, gasPrice: '59000000000' })
 
     const transfer = disperse.methods.disperseToken(balAddress, recipients, values)
-    console.log(transfer.encodeABI())
-    await transfer.send({ from, gas: 6000000, gasPrice: '120000000000' })
+    // console.log(transfer.encodeABI())
+    await transfer.send({ from, gas: 3000000, gasPrice: '35000000000' })
 }
-
 
 execute()
